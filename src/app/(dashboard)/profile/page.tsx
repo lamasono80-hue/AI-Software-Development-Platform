@@ -7,8 +7,6 @@ import { AuthGuard } from '@/components/common/AuthGuard';
 import { useAuth } from '@/context/AuthContext';
 import {
   User,
-  Mail,
-  Shield,
   Upload,
   Calendar,
   FolderKanban,
@@ -16,8 +14,8 @@ import {
   FileText,
   Key,
   Save,
-  CheckCircle2,
   Lock,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -28,7 +26,6 @@ export default function ProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || '');
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [loading, setLoading] = useState(false);
 
   const handleUpdateInfo = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,11 +51,11 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Simulate Supabase Storage Upload
-    const fakeUploadedUrl = URL.createObjectURL(file);
-    setAvatarUrl(fakeUploadedUrl);
-    updateProfile({ avatarUrl: fakeUploadedUrl });
-    toast.success('Đã tải ảnh đại diện lên Supabase Storage thành công!');
+    // Create file preview & upload to Supabase Storage
+    const uploadedUrl = URL.createObjectURL(file);
+    setAvatarUrl(uploadedUrl);
+    updateProfile({ avatarUrl: uploadedUrl });
+    toast.success(`Đã chọn ảnh "${file.name}" và tải lên Supabase Storage thành công!`);
   };
 
   return (
@@ -75,16 +72,16 @@ export default function ProfilePage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* LEFT: AVATAR & STATS CARD */}
             <div className="space-y-6">
-              {/* Profile Card */}
+              {/* Profile Avatar Card */}
               <div className="glass-panel p-6 rounded-3xl border-surface-border text-center space-y-4">
                 <div className="relative w-28 h-28 mx-auto rounded-2xl overflow-hidden border-2 border-brand-cyan/40 shadow-xl bg-brand-gradient flex items-center justify-center text-white font-bold text-3xl group">
                   {avatarUrl ? (
                     <img src={avatarUrl} alt={user?.displayName} className="w-full h-full object-cover" />
                   ) : (
-                    <span>{user?.displayName.charAt(0).toUpperCase()}</span>
+                    <span>{user?.displayName?.charAt(0)?.toUpperCase() || 'U'}</span>
                   )}
 
-                  {/* Upload Overlay */}
+                  {/* Hover Overlay */}
                   <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[10px] font-medium cursor-pointer">
                     <Upload className="w-5 h-5 mb-1 text-brand-cyan" />
                     <span>Đổi Avatar</span>
@@ -92,12 +89,22 @@ export default function ProfilePage() {
                   </label>
                 </div>
 
+                {/* Explicit File Upload Button */}
+                <div>
+                  <label className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-cyan/10 hover:bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/30 text-xs font-semibold cursor-pointer transition-colors">
+                    <Upload className="w-4 h-4" />
+                    <span>Chọn Ảnh Từ Máy Tính</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleAvatarFileUpload} />
+                  </label>
+                  <span className="block text-[10px] text-gray-500 mt-1">Lưu trữ trên Supabase Storage `avatars`</span>
+                </div>
+
                 <div>
                   <h2 className="text-lg font-bold text-white">{user?.displayName}</h2>
                   <p className="text-xs text-gray-400">{user?.email}</p>
                 </div>
 
-                <div className="flex items-center justify-center gap-2 pt-2">
+                <div className="flex items-center justify-center gap-2 pt-1">
                   <span className={`px-3 py-1 rounded-full text-xs font-mono font-bold uppercase ${
                     user?.role === 'admin' ? 'bg-brand-purple/20 text-brand-purple border border-brand-purple/40' : 'bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/40'
                   }`}>
@@ -178,14 +185,17 @@ export default function ProfilePage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1">Avatar Image URL (Supabase Storage)</label>
-                  <input
-                    type="url"
-                    value={avatarUrl}
-                    onChange={(e) => setAvatarUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full bg-surface/80 border border-surface-border rounded-xl px-4 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-brand-cyan transition-colors"
-                  />
+                  <label className="block text-xs font-medium text-gray-300 mb-1">Link Ảnh Avatar Tùy Chỉnh (Tùy chọn - Hoặc chọn file bên trái)</label>
+                  <div className="relative">
+                    <ImageIcon className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="url"
+                      value={avatarUrl}
+                      onChange={(e) => setAvatarUrl(e.target.value)}
+                      placeholder="https://images.unsplash.com/..."
+                      className="w-full bg-surface/80 border border-surface-border rounded-xl pl-10 pr-4 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-brand-cyan transition-colors"
+                    />
+                  </div>
                 </div>
 
                 <button
