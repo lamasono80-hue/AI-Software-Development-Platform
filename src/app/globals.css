@@ -3,13 +3,11 @@
 @tailwind utilities;
 
 @layer base {
-  /* DARK MODE DEFAULT */
   html.dark body {
     background-color: #090D16 !important;
     color: #F9FAFB !important;
   }
 
-  /* LIGHT MODE ACTIVE */
   html.light body {
     background-color: #F8FAFC !important;
     color: #0F172A !important;
@@ -56,10 +54,8 @@ html.light .text-gray-500 {
   color: #64748B !important;
 }
 
-html.light .bg-[#0D1117],
 html.light .bg-surface,
-html.light .bg-surface\/80,
-html.light .bg-surface\/50 {
+html.light [class*="bg-surface"] {
   background-color: #F1F5F9 !important;
   border-color: #CBD5E1 !important;
 }
