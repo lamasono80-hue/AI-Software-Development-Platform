@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { Toaster } from 'sonner';
+import { AuthProvider } from '@/context/AuthContext';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
@@ -19,8 +20,10 @@ export default function RootLayout({
   return (
     <html lang="vi" className="dark">
       <body className={`${inter.variable} ${mono.variable} bg-background text-foreground antialiased min-h-screen flex flex-col`}>
-        {children}
-        <Toaster position="top-right" theme="dark" richColors />
+        <AuthProvider>
+          {children}
+          <Toaster position="top-right" theme="dark" richColors />
+        </AuthProvider>
       </body>
     </html>
   );

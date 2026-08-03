@@ -1,160 +1,163 @@
 import Link from 'next/link';
 import { Header } from '@/components/common/Header';
 import { Footer } from '@/components/common/Footer';
+import { AuthGuard } from '@/components/common/AuthGuard';
 import { FolderKanban, MessageSquare, FileText, Zap, ArrowRight, Plus, Clock, Cpu, BarChart3 } from 'lucide-react';
 
 export default function DashboardPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
-      <Header />
+    <AuthGuard>
+      <div className="min-h-screen flex flex-col bg-background text-foreground">
+        <Header />
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-        {/* Welcome Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Dashboard Quản Trị & Workspace</h1>
-            <p className="text-xs sm:text-sm text-gray-400">Theo dõi số liệu, tạo dự án mới và tương tác với AI Assistant</p>
-          </div>
-
-          <Link href="/projects" className="px-5 py-2.5 rounded-xl bg-brand-gradient text-white text-xs font-semibold shadow-lg shadow-brand-indigo/30 hover:scale-105 transition-transform flex items-center justify-center gap-2 self-start md:self-auto">
-            <Plus className="w-4 h-4" />
-            <span>Tạo Dự Án AI Mới</span>
-          </Link>
-        </div>
-
-        {/* METRICS CARDS (4 Stats) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-          <div className="glass-panel p-5 rounded-2xl glow-border flex items-center justify-between">
+        <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+          {/* Welcome Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
-              <span className="text-xs text-gray-400 block mb-1">Tổng Số Dự Án</span>
-              <span className="text-2xl font-bold text-white">12</span>
-              <span className="text-[10px] text-emerald-400 block mt-1">+3 dự án tuần này</span>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Dashboard Quản Trị & Workspace</h1>
+              <p className="text-xs sm:text-sm text-gray-400">Theo dõi số liệu, tạo dự án mới và tương tác với AI Assistant</p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-brand-cyan/10 border border-brand-cyan/30 flex items-center justify-center text-brand-cyan">
-              <FolderKanban className="w-5 h-5" />
-            </div>
-          </div>
 
-          <div className="glass-panel p-5 rounded-2xl glow-border flex items-center justify-between">
-            <div>
-              <span className="text-xs text-gray-400 block mb-1">Lượt Gọi AI Engine</span>
-              <span className="text-2xl font-bold text-white">148</span>
-              <span className="text-[10px] text-brand-cyan block mt-1">Gemini 1.5 Active</span>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-brand-indigo/10 border border-brand-indigo/30 flex items-center justify-center text-brand-indigo">
-              <Cpu className="w-5 h-5" />
-            </div>
-          </div>
-
-          <div className="glass-panel p-5 rounded-2xl glow-border flex items-center justify-between">
-            <div>
-              <span className="text-xs text-gray-400 block mb-1">Tài Liệu SRS & ERD</span>
-              <span className="text-2xl font-bold text-white">34</span>
-              <span className="text-[10px] text-brand-purple block mt-1">Ready to Export</span>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-brand-purple/10 border border-brand-purple/30 flex items-center justify-center text-brand-purple">
-              <FileText className="w-5 h-5" />
-            </div>
-          </div>
-
-          <div className="glass-panel p-5 rounded-2xl glow-border flex items-center justify-between">
-            <div>
-              <span className="text-xs text-gray-400 block mb-1">Thời Gian Tiết Kiệm</span>
-              <span className="text-2xl font-bold text-white">64h</span>
-              <span className="text-[10px] text-emerald-400 block mt-1">Tự động hóa 85%</span>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-              <Clock className="w-5 h-5" />
-            </div>
-          </div>
-        </div>
-
-        {/* QUICK AI ACTIONS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Link href="/projects" className="glass-panel p-6 rounded-2xl hover:bg-surface-hover transition-all group border-brand-cyan/20">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 rounded-xl bg-brand-cyan/10 border border-brand-cyan/30 flex items-center justify-center text-brand-cyan">
-                <Zap className="w-5 h-5" />
-              </div>
-              <ArrowRight className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
-            </div>
-            <h3 className="text-base font-bold text-white mb-1">Sinh Dự Án Phần Mềm AI</h3>
-            <p className="text-xs text-gray-400">Phân tích SRS, Use Case, ERD Diagram, RESTful API Specs & SQL trong 1 click.</p>
-          </Link>
-
-          <Link href="/chat" className="glass-panel p-6 rounded-2xl hover:bg-surface-hover transition-all group border-brand-indigo/20">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 rounded-xl bg-brand-indigo/10 border border-brand-indigo/30 flex items-center justify-center text-brand-indigo">
-                <MessageSquare className="w-5 h-5" />
-              </div>
-              <ArrowRight className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
-            </div>
-            <h3 className="text-base font-bold text-white mb-1">AI Chat Assistant Stream</h3>
-            <p className="text-xs text-gray-400">Trò chuyện thời gian thực, hỏi đáp thuật toán, review code và refactoring.</p>
-          </Link>
-
-          <Link href="/documents" className="glass-panel p-6 rounded-2xl hover:bg-surface-hover transition-all group border-brand-purple/20">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 rounded-xl bg-brand-purple/10 border border-brand-purple/30 flex items-center justify-center text-brand-purple">
-                <FileText className="w-5 h-5" />
-              </div>
-              <ArrowRight className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
-            </div>
-            <h3 className="text-base font-bold text-white mb-1">Document Studio & Export</h3>
-            <p className="text-xs text-gray-400">Đọc, chỉnh sửa Markdown và xuất bộ tài liệu hoàn chỉnh ra file PDF, DOCX.</p>
-          </Link>
-        </div>
-
-        {/* RECENT PROJECTS TABLE */}
-        <div className="glass-panel rounded-2xl border-surface-border overflow-hidden">
-          <div className="px-6 py-4 border-b border-surface-border flex items-center justify-between">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-brand-cyan" />
-              <span>Dự Án Gần Đây</span>
-            </h3>
-            <Link href="/projects" className="text-xs text-brand-cyan hover:underline font-medium">
-              Xem tất cả
+            <Link href="/projects" className="px-5 py-2.5 rounded-xl bg-brand-gradient text-white text-xs font-semibold shadow-lg shadow-brand-indigo/30 hover:scale-105 transition-transform flex items-center justify-center gap-2 self-start md:self-auto">
+              <Plus className="w-4 h-4" />
+              <span>Tạo Dự Án AI Mới</span>
             </Link>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-gray-300">
-              <thead className="bg-surface/50 text-gray-400 uppercase text-[10px] font-mono border-b border-surface-border">
-                <tr>
-                  <th className="px-6 py-3">Tên Dự Án</th>
-                  <th className="px-6 py-3">Lĩnh Vực</th>
-                  <th className="px-6 py-3">Kiến Trúc</th>
-                  <th className="px-6 py-3">Trạng Thái</th>
-                  <th className="px-6 py-3 text-right">Thao Tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-surface-border/50">
-                <tr className="hover:bg-surface-hover/50 transition-colors">
-                  <td className="px-6 py-4 font-semibold text-white">Hệ thống Quản lý Bệnh viện</td>
-                  <td className="px-6 py-4"><span className="px-2 py-1 rounded-md bg-blue-500/10 text-blue-400 font-mono text-[10px]">Hospital</span></td>
-                  <td className="px-6 py-4 text-gray-400">Layered Architecture</td>
-                  <td className="px-6 py-4"><span className="px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-400 font-mono text-[10px]">Planning</span></td>
-                  <td className="px-6 py-4 text-right">
-                    <Link href="/projects" className="text-brand-cyan hover:underline font-medium">Chi tiết</Link>
-                  </td>
-                </tr>
+          {/* METRICS CARDS (4 Stats) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+            <div className="glass-panel p-5 rounded-2xl glow-border flex items-center justify-between">
+              <div>
+                <span className="text-xs text-gray-400 block mb-1">Tổng Số Dự Án</span>
+                <span className="text-2xl font-bold text-white">12</span>
+                <span className="text-[10px] text-emerald-400 block mt-1">+3 dự án tuần này</span>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-brand-cyan/10 border border-brand-cyan/30 flex items-center justify-center text-brand-cyan">
+                <FolderKanban className="w-5 h-5" />
+              </div>
+            </div>
 
-                <tr className="hover:bg-surface-hover/50 transition-colors">
-                  <td className="px-6 py-4 font-semibold text-white">Sàn Thương mại Điện tử E-Commerce</td>
-                  <td className="px-6 py-4"><span className="px-2 py-1 rounded-md bg-purple-500/10 text-purple-400 font-mono text-[10px]">E-Commerce</span></td>
-                  <td className="px-6 py-4 text-gray-400">Microservices</td>
-                  <td className="px-6 py-4"><span className="px-2 py-1 rounded-md bg-amber-500/10 text-amber-400 font-mono text-[10px]">In Progress</span></td>
-                  <td className="px-6 py-4 text-right">
-                    <Link href="/projects" className="text-brand-cyan hover:underline font-medium">Chi tiết</Link>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <div className="glass-panel p-5 rounded-2xl glow-border flex items-center justify-between">
+              <div>
+                <span className="text-xs text-gray-400 block mb-1">Lượt Gọi AI Engine</span>
+                <span className="text-2xl font-bold text-white">148</span>
+                <span className="text-[10px] text-brand-cyan block mt-1">Gemini 1.5 Active</span>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-brand-indigo/10 border border-brand-indigo/30 flex items-center justify-center text-brand-indigo">
+                <Cpu className="w-5 h-5" />
+              </div>
+            </div>
+
+            <div className="glass-panel p-5 rounded-2xl glow-border flex items-center justify-between">
+              <div>
+                <span className="text-xs text-gray-400 block mb-1">Tài Liệu SRS & ERD</span>
+                <span className="text-2xl font-bold text-white">34</span>
+                <span className="text-[10px] text-brand-purple block mt-1">Ready to Export</span>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-brand-purple/10 border border-brand-purple/30 flex items-center justify-center text-brand-purple">
+                <FileText className="w-5 h-5" />
+              </div>
+            </div>
+
+            <div className="glass-panel p-5 rounded-2xl glow-border flex items-center justify-between">
+              <div>
+                <span className="text-xs text-gray-400 block mb-1">Thời Gian Tiết Kiệm</span>
+                <span className="text-2xl font-bold text-white">64h</span>
+                <span className="text-[10px] text-emerald-400 block mt-1">Tự động hóa 85%</span>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <Clock className="w-5 h-5" />
+              </div>
+            </div>
           </div>
-        </div>
-      </main>
 
-      <Footer />
-    </div>
+          {/* QUICK AI ACTIONS */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <Link href="/projects" className="glass-panel p-6 rounded-2xl hover:bg-surface-hover transition-all group border-brand-cyan/20">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-10 h-10 rounded-xl bg-brand-cyan/10 border border-brand-cyan/30 flex items-center justify-center text-brand-cyan">
+                  <Zap className="w-5 h-5" />
+                </div>
+                <ArrowRight className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
+              </div>
+              <h3 className="text-base font-bold text-white mb-1">Sinh Dự Án Phần Mềm AI</h3>
+              <p className="text-xs text-gray-400">Phân tích SRS, Use Case, ERD Diagram, RESTful API Specs & SQL trong 1 click.</p>
+            </Link>
+
+            <Link href="/chat" className="glass-panel p-6 rounded-2xl hover:bg-surface-hover transition-all group border-brand-indigo/20">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-10 h-10 rounded-xl bg-brand-indigo/10 border border-brand-indigo/30 flex items-center justify-center text-brand-indigo">
+                  <MessageSquare className="w-5 h-5" />
+                </div>
+                <ArrowRight className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
+              </div>
+              <h3 className="text-base font-bold text-white mb-1">AI Chat Assistant Stream</h3>
+              <p className="text-xs text-gray-400">Trò chuyện thời gian thực, hỏi đáp thuật toán, review code và refactoring.</p>
+            </Link>
+
+            <Link href="/documents" className="glass-panel p-6 rounded-2xl hover:bg-surface-hover transition-all group border-brand-purple/20">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-10 h-10 rounded-xl bg-brand-purple/10 border border-brand-purple/30 flex items-center justify-center text-brand-purple">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <ArrowRight className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
+              </div>
+              <h3 className="text-base font-bold text-white mb-1">Document Studio & Export</h3>
+              <p className="text-xs text-gray-400">Đọc, chỉnh sửa Markdown và xuất bộ tài liệu hoàn chỉnh ra file PDF, DOCX.</p>
+            </Link>
+          </div>
+
+          {/* RECENT PROJECTS TABLE */}
+          <div className="glass-panel rounded-2xl border-surface-border overflow-hidden">
+            <div className="px-6 py-4 border-b border-surface-border flex items-center justify-between">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-brand-cyan" />
+                <span>Dự Án Gần Đây</span>
+              </h3>
+              <Link href="/projects" className="text-xs text-brand-cyan hover:underline font-medium">
+                Xem tất cả
+              </Link>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-gray-300">
+                <thead className="bg-surface/50 text-gray-400 uppercase text-[10px] font-mono border-b border-surface-border">
+                  <tr>
+                    <th className="px-6 py-3">Tên Dự Án</th>
+                    <th className="px-6 py-3">Lĩnh Vực</th>
+                    <th className="px-6 py-3">Kiến Trúc</th>
+                    <th className="px-6 py-3">Trạng Thái</th>
+                    <th className="px-6 py-3 text-right">Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-surface-border/50">
+                  <tr className="hover:bg-surface-hover/50 transition-colors">
+                    <td className="px-6 py-4 font-semibold text-white">Hệ thống Quản lý Bệnh viện</td>
+                    <td className="px-6 py-4"><span className="px-2 py-1 rounded-md bg-blue-500/10 text-blue-400 font-mono text-[10px]">Hospital</span></td>
+                    <td className="px-6 py-4 text-gray-400">Layered Architecture</td>
+                    <td className="px-6 py-4"><span className="px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-400 font-mono text-[10px]">Planning</span></td>
+                    <td className="px-6 py-4 text-right">
+                      <Link href="/projects" className="text-brand-cyan hover:underline font-medium">Chi tiết</Link>
+                    </td>
+                  </tr>
+
+                  <tr className="hover:bg-surface-hover/50 transition-colors">
+                    <td className="px-6 py-4 font-semibold text-white">Sàn Thương mại Điện tử E-Commerce</td>
+                    <td className="px-6 py-4"><span className="px-2 py-1 rounded-md bg-purple-500/10 text-purple-400 font-mono text-[10px]">E-Commerce</span></td>
+                    <td className="px-6 py-4 text-gray-400">Microservices</td>
+                    <td className="px-6 py-4"><span className="px-2 py-1 rounded-md bg-amber-500/10 text-amber-400 font-mono text-[10px]">In Progress</span></td>
+                    <td className="px-6 py-4 text-right">
+                      <Link href="/projects" className="text-brand-cyan hover:underline font-medium">Chi tiết</Link>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </main>
+
+        <Footer />
+      </div>
+    </AuthGuard>
   );
 }
