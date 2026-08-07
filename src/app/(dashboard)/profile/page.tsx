@@ -15,7 +15,6 @@ import {
   Key,
   Save,
   Lock,
-  Image as ImageIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -180,20 +179,6 @@ export default function ProfilePage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full bg-surface/80 border border-surface-border rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-brand-cyan transition-colors"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1">Link Ảnh Avatar Tùy Chỉnh (Tùy chọn - Hoặc chọn file bên trái)</label>
-                  <div className="relative">
-                    <ImageIcon className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="url"
-                      value={avatarUrl}
-                      onChange={(e) => setAvatarUrl(e.target.value)}
-                      placeholder="https://images.unsplash.com/..."
-                      className="w-full bg-surface/80 border border-surface-border rounded-xl pl-10 pr-4 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-brand-cyan transition-colors"
                     />
                   </div>
                 </div>
