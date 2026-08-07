@@ -28,12 +28,20 @@ export class GeminiAdapter implements IAIProvider {
       systemInstruction: options?.systemInstruction,
     });
 
-    const history = messages.slice(0, -1).map(m => ({
+    // Gemini API requires the first entry in history to be role 'user'
+    const firstUserIndex = messages.findIndex(m => m.role === 'user');
+    const validMessages = firstUserIndex !== -1 ? messages.slice(firstUserIndex) : messages;
+
+    if (validMessages.length === 0) {
+      return;
+    }
+
+    const history = validMessages.slice(0, -1).map(m => ({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }],
     }));
 
-    const lastMessage = messages[messages.length - 1]?.content || '';
+    const lastMessage = validMessages[validMessages.length - 1]?.content || '';
     const chat = model.startChat({ history });
     const resultStream = await chat.sendMessageStream(lastMessage);
 
