@@ -31,7 +31,6 @@ import {
   Star,
   Download,
   X,
-  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -46,7 +45,10 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // 3-Dots Menu Popover state
+  // Auto-scroll ref
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Popover 3-Dots Menu State
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -54,7 +56,7 @@ export default function ChatPage() {
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   const [newChatTitle, setNewChatTitle] = useState('');
 
-  // 1. Fetch user's real chats on load
+  // 1. Load user's chats from Supabase DB on mount
   useEffect(() => {
     async function loadUserChats() {
       const userChats = await getChatsByUser(userId);
@@ -63,7 +65,7 @@ export default function ChatPage() {
       if (userChats.length > 0) {
         setActiveChatId(userChats[0].id);
       } else {
-        const newChat = await createChatForUser(userId, 'Tư vấn Kiến trúc Phần mềm');
+        const newChat = await createChatForUser(userId, 'Tư vấn Lập trình & AI');
         setChats([newChat]);
         setActiveChatId(newChat.id);
       }
@@ -71,15 +73,22 @@ export default function ChatPage() {
     loadUserChats();
   }, [userId]);
 
-  // 2. Fetch messages whenever activeChatId changes
+  // 2. Fetch messages from Supabase DB whenever activeChatId changes
   useEffect(() => {
     async function loadChatMessages() {
       if (!activeChatId) return;
       const msgs = await getMessagesByChat(activeChatId);
       setMessages(msgs);
+      scrollToBottom();
     }
     loadChatMessages();
   }, [activeChatId]);
+
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
 
   // Close 3-dots menu on outside click
   useEffect(() => {
@@ -92,7 +101,7 @@ export default function ChatPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Handle New Chat
+  // Handle Create New Chat
   const handleCreateNewChat = async () => {
     const newChat = await createChatForUser(userId, `Cuộc trò chuyện mới #${chats.length + 1}`);
     setChats((prev) => [newChat, ...prev]);
@@ -100,7 +109,7 @@ export default function ChatPage() {
     toast.success('Đã tạo cuộc trò chuyện mới!');
   };
 
-  // Handle Send Message & AI Stream
+  // Real Gemini Streaming Chat Handler
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || loading || !activeChatId) return;
@@ -109,27 +118,71 @@ export default function ChatPage() {
     setInput('');
     setLoading(true);
 
-    // Save user message to Supabase
+    // Save user message to Supabase DB
     const userMsg = await addMessageToChat(activeChatId, userId, 'user', userText);
     setMessages((prev) => [...prev, userMsg]);
+    scrollToBottom();
+
+    // Placeholder for AI streaming response in UI
+    const tempAiMsgId = `msg_stream_${Date.now()}`;
+    const tempAiMsg: MessageRecord = {
+      id: tempAiMsgId,
+      chat_id: activeChatId,
+      user_id: userId,
+      role: 'assistant',
+      content: '',
+      created_at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setMessages((prev) => [...prev, tempAiMsg]);
 
     try {
-      let aiContent = '';
-      const lower = userText.toLowerCase();
+      // Build conversation history payload
+      const chatHistory = [...messages, userMsg].map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
 
-      if (lower.includes('bệnh viện') || lower.includes('patient')) {
-        aiContent = `Dưới đây là kịch bản SQL DDL cho Phân hệ Quản lý Bệnh nhân:\n\n\`\`\`sql\nCREATE TABLE patients (\n  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n  full_name VARCHAR(255) NOT NULL,\n  date_of_birth DATE,\n  phone VARCHAR(20) UNIQUE,\n  created_at TIMESTAMPTZ DEFAULT NOW()\n);\n\`\`\`\n\nBạn có muốn tôi phát triển thêm bảng \`appointments\` không?`;
-      } else if (lower.includes('quần áo') || lower.includes('bán hàng') || lower.includes('e-commerce') || lower.includes('đồ ăn')) {
-        aiContent = `Dưới đây là kịch bản SQL DDL cho Phân hệ Sản phẩm & Đơn hàng E-Commerce:\n\n\`\`\`sql\nCREATE TABLE products (\n  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n  title VARCHAR(255) NOT NULL,\n  price DECIMAL(12,2) NOT NULL,\n  stock_quantity INT DEFAULT 0,\n  created_at TIMESTAMPTZ DEFAULT NOW()\n);\n\`\`\`\n\nBạn có muốn tôi bổ sung bảng \`orders\` và \`order_items\` không?`;
-      } else {
-        aiContent = `Tôi đã nhận được yêu cầu: "${userText}".\n\nĐã phân tích theo nguyên lý Clean Code & SOLID. Đoạn mã hoặc giải thuật được gợi ý tối ưu theo tiêu chuẩn dự án của bạn!`;
+      const response = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: chatHistory }),
+      });
+
+      if (!response.ok || !response.body) {
+        throw new Error('Lỗi phản hồi từ server AI!');
       }
 
-      // Save AI response message to Supabase
-      const aiMsg = await addMessageToChat(activeChatId, userId, 'assistant', aiContent);
-      setMessages((prev) => [...prev, aiMsg]);
-    } catch (err) {
-      toast.error('Lỗi khi gọi AI Assistant!');
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullAiText = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        fullAiText += chunk;
+
+        // Stream update UI chunk by chunk
+        setMessages((prev) =>
+          prev.map((m) => (m.id === tempAiMsgId ? { ...m, content: fullAiText } : m))
+        );
+        scrollToBottom();
+      }
+
+      // Save complete Gemini AI response into Supabase DB
+      if (fullAiText.trim()) {
+        await addMessageToChat(activeChatId, userId, 'assistant', fullAiText);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Lỗi khi kết nối với Gemini AI Engine!');
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempAiMsgId
+            ? { ...m, content: `⚠️ Lỗi kết nối Gemini AI Engine: ${err.message || 'Không thể tạo phản hồi'}` }
+            : m
+        )
+      );
     } finally {
       setLoading(false);
     }
@@ -190,8 +243,8 @@ export default function ChatPage() {
         <Header />
 
         <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row gap-6">
-          {/* SIDEBAR: CHAT HISTORY LIST */}
-          <aside className="w-full md:w-72 glass-panel p-4 rounded-2xl border-surface-border shrink-0 flex flex-col h-[700px]">
+          {/* SIDEBAR: CHATS HISTORY LIST */}
+          <aside className="w-full md:w-72 glass-panel p-4 rounded-2xl border-surface-border shrink-0 flex flex-col h-[750px]">
             <button
               onClick={handleCreateNewChat}
               className="w-full py-3 px-4 rounded-xl bg-brand-gradient text-white text-xs font-semibold shadow-lg shadow-brand-cyan/20 flex items-center justify-center gap-2 mb-4 hover:scale-105 transition-transform"
@@ -224,10 +277,10 @@ export default function ChatPage() {
             </div>
           </aside>
 
-          {/* MAIN CHAT DISPLAY */}
-          <div className="flex-1 glass-panel rounded-2xl border-surface-border flex flex-col h-[700px] overflow-hidden">
-            {/* CHAT HEADER WITH CHATGPT-STYLE (⋮) MENU */}
-            <div className="px-6 py-4 border-b border-surface-border bg-surface/50 flex items-center justify-between">
+          {/* MAIN CHAT DISPLAY - FIXED HEADER & FOOTER, ONLY FEED SCROLLS */}
+          <div className="flex-1 glass-panel rounded-2xl border-surface-border flex flex-col h-[750px] overflow-hidden relative">
+            {/* FIXED HEADER WITH (⋮) MENU */}
+            <div className="sticky top-0 z-10 px-6 py-4 border-b border-surface-border bg-[#0D1117]/90 backdrop-blur-md flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-brand-gradient flex items-center justify-center shadow-md">
                   <Bot className="w-5 h-5 text-white" />
@@ -237,11 +290,11 @@ export default function ChatPage() {
                     <span>{currentChatObj?.title || 'Cuộc trò chuyện AI'}</span>
                     {currentChatObj?.is_favorite && <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
                   </h3>
-                  <span className="text-[10px] text-emerald-400 font-mono">Engine: Gemini 1.5 Flash (Supabase Realtime)</span>
+                  <span className="text-[10px] text-emerald-400 font-mono">Engine: Gemini 1.5 Flash SSE Stream (Active)</span>
                 </div>
               </div>
 
-              {/* CHATGPT-STYLE (⋮) 3-DOTS ACTION MENU */}
+              {/* CHATGPT-STYLE (⋮) 3-DOTS MENU */}
               <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setMenuOpen(!menuOpen)}
@@ -299,70 +352,77 @@ export default function ChatPage() {
               </div>
             </div>
 
-            {/* MESSAGES FEED */}
+            {/* MESSAGES FEED - ONLY THIS AREA SCROLLS */}
             <div className="flex-1 p-6 overflow-y-auto space-y-6">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex gap-3 max-w-3xl ${msg.role === 'user' ? 'ml-auto flex-row-reverse' : ''}`}
-                >
+              <div className="max-w-4xl mx-auto space-y-6">
+                {messages.map((msg) => (
                   <div
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                      msg.role === 'user' ? 'bg-brand-indigo text-white' : 'bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/30'
-                    }`}
+                    key={msg.id}
+                    className={`flex gap-3.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                    {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-                  </div>
+                    {msg.role === 'assistant' && (
+                      <div className="w-8 h-8 rounded-xl bg-brand-cyan/20 border border-brand-cyan/30 text-brand-cyan flex items-center justify-center shrink-0">
+                        <Bot className="w-4 h-4" />
+                      </div>
+                    )}
 
-                  <div className={`space-y-1 ${msg.role === 'user' ? 'text-right' : ''}`}>
-                    <div
-                      className={`p-4 rounded-2xl text-xs leading-relaxed ${
-                        msg.role === 'user'
-                          ? 'bg-brand-gradient text-white shadow-md'
-                          : 'bg-[#0D1117] text-gray-200 border border-surface-border'
-                      }`}
-                    >
-                      <div className="whitespace-pre-wrap font-sans">{msg.content}</div>
+                    <div className={`space-y-1 max-w-[85%] ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                      <div
+                        className={`p-4 rounded-2xl text-xs leading-relaxed ${
+                          msg.role === 'user'
+                            ? 'bg-brand-gradient text-white shadow-md rounded-tr-none'
+                            : 'bg-[#0D1117] text-gray-200 border border-surface-border rounded-tl-none'
+                        }`}
+                      >
+                        <div className="whitespace-pre-wrap font-sans">{msg.content || (loading && msg.role === 'assistant' ? '...' : '')}</div>
+                      </div>
+
+                      <div className="flex items-center gap-2 px-1 text-[10px] text-gray-500 justify-end">
+                        <span>{msg.created_at}</span>
+                        {msg.role === 'assistant' && msg.content && (
+                          <button
+                            onClick={() => handleCopy(msg.id, msg.content)}
+                            className="hover:text-gray-300 flex items-center gap-1 ml-2"
+                          >
+                            {copiedId === msg.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                            <span>Copy</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-2 px-1 text-[10px] text-gray-500">
-                      <span>{msg.created_at}</span>
-                      {msg.role === 'assistant' && (
-                        <button
-                          onClick={() => handleCopy(msg.id, msg.content)}
-                          className="hover:text-gray-300 flex items-center gap-1 ml-2"
-                        >
-                          {copiedId === msg.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                          <span>Copy</span>
-                        </button>
-                      )}
+                    {msg.role === 'user' && (
+                      <div className="w-8 h-8 rounded-xl bg-brand-indigo text-white flex items-center justify-center shrink-0 shadow-md">
+                        <User className="w-4 h-4" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {loading && messages[messages.length - 1]?.content === '' && (
+                  <div className="flex gap-3.5 items-center max-w-3xl">
+                    <div className="w-8 h-8 rounded-xl bg-brand-cyan/20 border border-brand-cyan/30 text-brand-cyan flex items-center justify-center shrink-0">
+                      <Bot className="w-4 h-4 animate-spin" />
+                    </div>
+                    <div className="p-3.5 rounded-2xl bg-[#0D1117] text-gray-400 text-xs border border-surface-border flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-brand-cyan animate-pulse" />
+                      <span>Gemini AI đang suy nghĩ & gõ chữ...</span>
                     </div>
                   </div>
-                </div>
-              ))}
-
-              {loading && (
-                <div className="flex gap-3 max-w-3xl">
-                  <div className="w-8 h-8 rounded-lg bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/30 flex items-center justify-center">
-                    <Bot className="w-4 h-4 animate-spin" />
-                  </div>
-                  <div className="p-4 rounded-2xl bg-[#0D1117] text-gray-400 text-xs border border-surface-border flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-brand-cyan animate-pulse" />
-                    <span>Gemini AI đang suy nghĩ & sinh câu trả lời...</span>
-                  </div>
-                </div>
-              )}
+                )}
+                <div ref={messagesEndRef} />
+              </div>
             </div>
 
-            {/* INPUT FORM */}
-            <form onSubmit={handleSendMessage} className="p-4 border-t border-surface-border bg-surface/30">
-              <div className="relative">
+            {/* FIXED BOTTOM INPUT FORM */}
+            <form onSubmit={handleSendMessage} className="sticky bottom-0 z-10 p-4 border-t border-surface-border bg-[#0D1117]/95 backdrop-blur-md">
+              <div className="max-w-4xl mx-auto relative">
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Nhập yêu cầu bài toán hoặc câu hỏi (ví dụ: Viết SQL bảng sản phẩm)..."
-                  className="w-full bg-[#0D1117] border border-surface-border rounded-xl pl-4 pr-12 py-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand-cyan transition-colors"
+                  placeholder="Nhập bất kỳ câu hỏi nào (ví dụ: hi, bạn tên gì, viết code React, tạo database SQL)..."
+                  className="w-full bg-[#111827] border border-surface-border rounded-xl pl-4 pr-12 py-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand-cyan transition-colors"
                 />
                 <button
                   type="submit"
