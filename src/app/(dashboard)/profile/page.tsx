@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from '@/components/common/Header';
 import { Footer } from '@/components/common/Footer';
 import { AuthGuard } from '@/components/common/AuthGuard';
 import { useAuth } from '@/context/AuthContext';
+import { getDashboardStatsByUser } from '@/lib/supabase-db';
 import {
   User,
   Upload,
@@ -20,11 +21,29 @@ import { toast } from 'sonner';
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth();
+  const userId = user?.id || 'usr_demo_101';
+
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [email, setEmail] = useState(user?.email || '');
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || '');
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+
+  const [stats, setStats] = useState({
+    totalProjects: 0,
+    totalChats: 0,
+    totalDocuments: 0,
+    totalAICalls: 0,
+    savedHours: '0h',
+  });
+
+  useEffect(() => {
+    async function loadStats() {
+      const data = await getDashboardStatsByUser(userId);
+      setStats(data);
+    }
+    loadStats();
+  }, [userId]);
 
   const handleUpdateInfo = (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,16 +131,16 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Account Statistics */}
+              {/* Account Statistics from Supabase */}
               <div className="glass-panel p-6 rounded-3xl border-surface-border space-y-4">
-                <h3 className="text-sm font-bold text-white border-b border-surface-border pb-2">Thống Kê Hoạt Động</h3>
+                <h3 className="text-sm font-bold text-white border-b border-surface-border pb-2">Thống Kê Hoạt Động (Supabase Real)</h3>
                 
                 <div className="flex items-center justify-between text-xs py-1">
                   <span className="text-gray-400 flex items-center gap-2">
                     <FolderKanban className="w-4 h-4 text-brand-cyan" />
                     Tổng số Dự án:
                   </span>
-                  <span className="font-bold text-white font-mono">{user?.projectCount || 12}</span>
+                  <span className="font-bold text-white font-mono">{stats.totalProjects}</span>
                 </div>
 
                 <div className="flex items-center justify-between text-xs py-1">
@@ -129,7 +148,7 @@ export default function ProfilePage() {
                     <Cpu className="w-4 h-4 text-brand-indigo" />
                     AI Requests:
                   </span>
-                  <span className="font-bold text-white font-mono">{user?.aiRequestCount || 148}</span>
+                  <span className="font-bold text-white font-mono">{stats.totalAICalls}</span>
                 </div>
 
                 <div className="flex items-center justify-between text-xs py-1">
@@ -137,7 +156,7 @@ export default function ProfilePage() {
                     <FileText className="w-4 h-4 text-brand-purple" />
                     Tài liệu SRS/ERD:
                   </span>
-                  <span className="font-bold text-white font-mono">{user?.documentCount || 34}</span>
+                  <span className="font-bold text-white font-mono">{stats.totalDocuments}</span>
                 </div>
 
                 <div className="flex items-center justify-between text-xs py-1">
