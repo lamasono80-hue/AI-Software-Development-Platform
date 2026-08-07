@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from '@/components/common/Header';
 import { Footer } from '@/components/common/Footer';
 import { AuthGuard } from '@/components/common/AuthGuard';
+import { useAuth } from '@/context/AuthContext';
+import { getProjectsByUser, saveProjectForUser, ProjectRecord } from '@/lib/supabase-db';
 import {
   FolderKanban,
   Sparkles,
@@ -19,40 +21,34 @@ import {
   Users,
   GitBranch,
   Calendar,
-  Download,
-  ListTodo,
   ExternalLink,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function ProjectsPage() {
+  const { user } = useAuth();
+  const userId = user?.id || 'usr_demo_101';
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [category, setCategory] = useState('general');
   const [generating, setGenerating] = useState(false);
-  const [generatedProject, setGeneratedProject] = useState<any>(null);
+  const [generatedProject, setGeneratedProject] = useState<ProjectRecord | null>(null);
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
+  const [projectHistory, setProjectHistory] = useState<ProjectRecord[]>([]);
 
-  // Sample history projects list
-  const [projectHistory, setProjectHistory] = useState<any[]>([
-    {
-      id: 'proj_hosp_01',
-      name: 'Hệ Thống Quản Lý Bệnh Viện & Phòng Khám',
-      category: 'Y tế & Bệnh viện',
-      architecture: 'Clean Architecture (Microservices)',
-      description: 'Hệ thống tự động hóa việc đăng ký khám chữa bệnh, hồ sơ bệnh nhân, lịch làm việc bác sĩ, cấp đơn thuốc và thanh toán viện phí.',
-      createdAt: '07/08/2026',
-      modules: ['Module 1 - Patient Management', 'Module 2 - Doctor Appointment', 'Module 3 - Medical Records', 'Module 4 - Pharmacy', 'Module 5 - Billing'],
-      actors: ['Bệnh nhân', 'Bác sĩ', 'Quản trị viên'],
-      useCases: ['Đăng ký khám bệnh', 'Tiếp nhận & Chẩn đoán', 'Kê đơn thuốc', 'Xuất hóa đơn viện phí'],
-      erdMermaid: `erDiagram\n    PATIENTS ||--o{ APPOINTMENTS : books\n    DOCTORS ||--o{ APPOINTMENTS : conducts\n    APPOINTMENTS ||--o| MEDICAL_RECORDS : generates`,
-      sqlSchema: `CREATE TABLE patients (\n  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n  full_name VARCHAR(255) NOT NULL,\n  phone VARCHAR(20)\n);`,
-      apiSpecs: [
-        { method: 'POST', endpoint: '/api/v1/patients', desc: 'Đăng ký hồ sơ bệnh nhân mới' },
-        { method: 'GET', endpoint: '/api/v1/appointments', desc: 'Tra cứu lịch khám bệnh' }
-      ]
+  // Load user's real projects history on mount
+  useEffect(() => {
+    async function loadProjects() {
+      const projects = await getProjectsByUser(userId);
+      setProjectHistory(projects);
+
+      if (projects.length > 0) {
+        setGeneratedProject(projects[0]);
+      }
     }
-  ]);
+    loadProjects();
+  }, [userId]);
 
   const handleGenerateProject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +63,7 @@ export default function ProjectsPage() {
       const res = await fetch('/api/projects/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt.trim(), category }),
+        body: JSON.stringify({ prompt: prompt.trim(), category, userId }),
       });
 
       const data = await res.json();
@@ -79,12 +75,14 @@ export default function ProjectsPage() {
       }
 
       const projectData = data.data;
-      setGeneratedProject(projectData);
-      setProjectHistory((prev) => [projectData, ...prev]);
+      const saved = await saveProjectForUser(userId, projectData);
+
+      setGeneratedProject(saved);
+      setProjectHistory((prev) => [saved, ...prev.filter((p) => p.id !== saved.id)]);
       setGenerating(false);
       setIsModalOpen(false);
       setPrompt('');
-      toast.success(`Gemini AI đã sinh trọn bộ dự án "${projectData.name}" thành công!`);
+      toast.success(`Gemini AI đã sinh trọn bộ dự án "${saved.name}" thành công!`);
     } catch (err: any) {
       toast.error('Có lỗi kết nối với máy chủ AI Engine!');
       setGenerating(false);
@@ -109,7 +107,7 @@ export default function ProjectsPage() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <FolderKanban className="w-7 h-7 text-brand-cyan" />
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Quản Lý Dự Án AI Suite</h1>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Quản Lý Dự Án AI Suite (Supabase DB)</h1>
               </div>
               <p className="text-xs sm:text-sm text-gray-400">Sinh trọn bộ Yêu cầu SRS, Modules, ERD Diagram, RESTful API Specs & SQL Migration bằng Gemini AI Engine</p>
             </div>
@@ -137,7 +135,7 @@ export default function ProjectsPage() {
                         {generatedProject.category || 'Software Engineering'}
                       </span>
                       <span className="px-3 py-1 rounded-full bg-brand-purple/20 text-brand-purple text-xs font-mono font-bold border border-brand-purple/30">
-                        {generatedProject.architecture || 'Clean Architecture'}
+                        {generatedProject.architecture_type || 'Clean Architecture'}
                       </span>
                     </div>
 
@@ -149,10 +147,10 @@ export default function ProjectsPage() {
 
                   <div className="flex flex-col items-end gap-2 shrink-0">
                     <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-mono font-bold border border-emerald-500/30">
-                      Status: Ready & Active
+                      Status: Active in DB
                     </span>
                     <span className="text-[10px] text-gray-400 font-mono">
-                      Khởi tạo: {generatedProject.createdAt || 'Hôm nay'}
+                      Khởi tạo: {generatedProject.created_at || 'Hôm nay'}
                     </span>
                   </div>
                 </div>
@@ -219,7 +217,7 @@ export default function ProjectsPage() {
                         <span>Sơ Đồ Cơ Sở Dữ Liệu ERD (Mermaid)</span>
                       </h3>
                       <button
-                        onClick={() => handleCopyCode('ERD', generatedProject.erdMermaid)}
+                        onClick={() => handleCopyCode('ERD', generatedProject.erdMermaid || '')}
                         className="text-xs text-gray-400 hover:text-white flex items-center gap-1 px-2.5 py-1 rounded bg-surface hover:bg-surface-hover transition-colors"
                       >
                         {copiedSection === 'ERD' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -239,7 +237,7 @@ export default function ProjectsPage() {
                         <span>Kịch Bản SQL DDL Migration Script</span>
                       </h3>
                       <button
-                        onClick={() => handleCopyCode('SQL', generatedProject.sqlSchema)}
+                        onClick={() => handleCopyCode('SQL', generatedProject.sqlSchema || '')}
                         className="text-xs text-gray-400 hover:text-white flex items-center gap-1 px-2.5 py-1 rounded bg-surface hover:bg-surface-hover transition-colors"
                       >
                         {copiedSection === 'SQL' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -288,9 +286,9 @@ export default function ProjectsPage() {
               <div className="w-16 h-16 rounded-2xl bg-brand-gradient flex items-center justify-center mx-auto shadow-xl shadow-brand-cyan/20">
                 <Sparkles className="w-8 h-8 text-white animate-pulse" />
               </div>
-              <h3 className="text-xl font-bold text-white">Chưa chọn dự án nào để hiển thị</h3>
+              <h3 className="text-xl font-bold text-white">Chưa có dự án nào được chọn</h3>
               <p className="text-xs sm:text-sm text-gray-400 max-w-lg mx-auto leading-relaxed">
-                Nhấn vào nút <strong>"Sinh Dự Án Mới Với AI"</strong> bên trên, nhập bất kỳ bài toán nào (Ví dụ: <em>"Tạo hệ thống quản lý bệnh viện"</em> hoặc <em>"Tạo website bán quần áo"</em>) để Gemini AI tự động phân tích và sinh toàn bộ tài liệu kỹ thuật!
+                Nhấn vào nút <strong>"Sinh Dự Án Mới Với AI"</strong> bên trên, nhập bất kỳ bài toán nào (Ví dụ: <em>"Tạo website đặt đồ ăn"</em> hoặc <em>"Tạo website bán quần áo"</em>) để Gemini AI tự động phân tích và sinh toàn bộ tài liệu kỹ thuật!
               </p>
               <button
                 onClick={() => setIsModalOpen(true)}
@@ -301,17 +299,17 @@ export default function ProjectsPage() {
             </div>
           )}
 
-          {/* PROJECT HISTORY LIST */}
+          {/* PROJECT HISTORY LIST FROM SUPABASE */}
           <div className="space-y-4">
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
               <Calendar className="w-5 h-5 text-brand-cyan" />
-              <span>Lịch Sử Các Dự Án Đã Sinh ({projectHistory.length})</span>
+              <span>Lịch Sử Các Dự Án Của Bạn TRÊN SUPABASE ({projectHistory.length})</span>
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {projectHistory.map((proj, idx) => (
+              {projectHistory.map((proj) => (
                 <div
-                  key={idx}
+                  key={proj.id}
                   onClick={() => setGeneratedProject(proj)}
                   className={`glass-panel p-5 rounded-2xl border transition-all cursor-pointer hover:border-brand-cyan/60 ${
                     generatedProject?.id === proj.id ? 'border-brand-cyan bg-brand-cyan/5 shadow-lg' : 'border-surface-border'
@@ -321,14 +319,14 @@ export default function ProjectsPage() {
                     <span className="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/30">
                       {proj.category}
                     </span>
-                    <span className="text-[10px] text-gray-400 font-mono">{proj.createdAt}</span>
+                    <span className="text-[10px] text-gray-400 font-mono">{proj.created_at}</span>
                   </div>
 
                   <h4 className="text-base font-bold text-white mb-1 truncate">{proj.name}</h4>
                   <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">{proj.description}</p>
 
                   <div className="mt-3 pt-3 border-t border-surface-border/50 flex items-center justify-between text-xs text-brand-cyan font-medium">
-                    <span>Xem chi tiết tài liệu & sơ đồ ERD</span>
+                    <span>Mở dự án này</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </div>
                 </div>
@@ -366,7 +364,7 @@ export default function ProjectsPage() {
                       required
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
-                      placeholder="Ví dụ: Tạo hệ thống quản lý bệnh viện / Tạo website bán quần áo thời trang / Tạo ứng dụng đặt xe công nghệ..."
+                      placeholder="Ví dụ: Website đặt đồ ăn / Website bán quần áo / Tạo hệ thống quản lý trường học / Ứng dụng đặt xe công nghệ..."
                       className="w-full bg-surface/80 border border-surface-border rounded-xl p-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand-cyan transition-colors"
                     />
                   </div>
@@ -381,8 +379,8 @@ export default function ProjectsPage() {
                       <option value="general">Tự động nhận diện theo Prompt</option>
                       <option value="y-te">Y tế & Bệnh viện</option>
                       <option value="e-commerce">Bán hàng & Thương mại Điện tử</option>
+                      <option value="food-delivery">Đặt đồ ăn & Nhà hàng</option>
                       <option value="giao-duc">Giáo dục & Trường học</option>
-                      <option value="tai-chinh">Tài chính & Ngân hàng</option>
                       <option value="van-tai">Vận tải & Logistics</option>
                     </select>
                   </div>
